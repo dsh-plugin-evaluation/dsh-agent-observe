@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test tests/*.test.js tests/*.test.cjs"
+    "test": "node --test tests/*.test.js tests/*.test.cjs",
+    "test:e2e": "DSH_E2E=1 node --test tests/e2e/*.test.js"
   },
   "exports": {
     ".": "./src/index.js",

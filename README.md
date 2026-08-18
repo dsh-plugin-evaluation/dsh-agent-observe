@@ -36,8 +36,35 @@ export DSH_STANDARDS_ROOT="$DSH_EVALUATION_HOME/dsh-plugin-evaluation-standards"
 export DSH_DATASET_ROOT="$DSH_EVALUATION_HOME/dsh-security-evaluation-dataset"
 ```
 
-## 开发
+## 测试
+
+普通单元测试：
 
 ```bash
 npm test
+```
+
+真实 DSH E2E 测试需要一个已构建的 DSH 源码目录、隔离的 DSH_HOME、standards 目录和 dataset 目录：
+
+```bash
+DSH_E2E_DSH_ROOT=/path/to/deepseek-harness \
+DSH_E2E_DSH_HOME=/tmp/dsh-e2e-home \
+DSH_STANDARDS_ROOT=/path/to/dsh-plugin-evaluation-standards \
+DSH_DATASET_ROOT=/path/to/dsh-security-evaluation-dataset \
+npm run test:e2e
+```
+
+E2E 默认覆盖：
+
+- DSH Web 是否能启动；
+- 插件是否能被真实 Web Profile 发现；
+- 评测方案目录是否可读取；
+- 选择方案时是否按需加载外部数据集；
+- 无效方案是否返回错误；
+- 可选的真实插件运行和评测报告结构。
+
+如需执行真实模型评测，再加：
+
+```bash
+DSH_E2E_RUN_VALIDATION=1
 ```
