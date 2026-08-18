@@ -5,14 +5,18 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test tests/*.test.js tests/*.test.cjs"
+    "test": "node --test tests/*.test.js tests/*.test.cjs",
+    "setup-evaluation": "node scripts/setup-evaluation.mjs"
+  },
+  "bin": {
+    "dsh-agent-observe-setup": "scripts/setup-evaluation.mjs"
   },
   "exports": {
     ".": "./src/index.js",
     "./client": "./src/client.js",
     "./package.json": "./package.json"
   },
-  "files": ["src/", "cordis.patch.yml"],
+  "files": ["src/", "scripts/", "cordis.patch.yml", "README.md"],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

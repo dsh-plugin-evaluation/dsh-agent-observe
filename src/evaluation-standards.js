@@ -1,8 +1,10 @@
 import { readFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
-export const STANDARDS_ROOT = process.env.DSH_STANDARDS_ROOT ?? resolve(process.cwd(), 'dsh-plugin-evaluation-standards')
-export const DATASET_ROOT = process.env.DSH_DATASET_ROOT ?? resolve(process.cwd(), 'dsh-security-evaluation-dataset')
+const evaluationRoot = process.env.DSH_EVALUATION_HOME ?? resolve(process.env.DSH_HOME ?? homedir(), 'evaluation')
+export const STANDARDS_ROOT = process.env.DSH_STANDARDS_ROOT ?? resolve(evaluationRoot, 'dsh-plugin-evaluation-standards')
+export const DATASET_ROOT = process.env.DSH_DATASET_ROOT ?? resolve(evaluationRoot, 'dsh-security-evaluation-dataset')
 export const STANDARDS_VERSION = '1.0.0'
 
 async function readJson(path, read = target => readFile(target, 'utf8')) {
