@@ -7,8 +7,8 @@ const files = new Map([
   [`${root}/catalog.json`, JSON.stringify({
     schemaVersion: 1,
     profiles: [
-      { id: 'alpha-v1', path: 'profiles/alpha-v1.json', version: '1.0.0' },
-      { id: 'beta-v1', path: 'profiles/beta-v1.json', version: '1.0.0' },
+      { id: 'alpha-v1', name: 'Alpha', description: 'Alpha profile', version: '1.0.0', metrics: ['duration'], caseCount: 1, path: 'profiles/alpha-v1.json' },
+      { id: 'beta-v1', name: 'Beta', description: 'Beta profile', version: '1.0.0', metrics: ['answer-matches-expected'], caseCount: 1, path: 'profiles/beta-v1.json' },
     ],
   })],
   [`${root}/profiles/alpha-v1.json`, JSON.stringify({
@@ -27,7 +27,7 @@ const files = new Map([
 
 const read = async path => files.get(path)
 
-test('lists profiles with their metadata and case counts', async () => {
+test('lists catalog metadata without loading cases', async () => {
   const profiles = await listEvaluationProfiles({ root, read })
   assert.deepEqual(profiles, [
     { id: 'alpha-v1', name: 'Alpha', version: '1.0.0', description: 'Alpha profile', metrics: ['duration'], caseCount: 1, standardVersion: '1.0.0' },

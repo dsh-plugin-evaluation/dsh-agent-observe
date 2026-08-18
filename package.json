@@ -5,11 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test tests/*.test.js tests/*.test.cjs",
-    "setup-evaluation": "node scripts/setup-evaluation.mjs"
-  },
-  "bin": {
-    "dsh-agent-observe-setup": "scripts/setup-evaluation.mjs"
+    "test": "node --test tests/*.test.js tests/*.test.cjs"
   },
   "exports": {
     ".": "./src/index.js",
