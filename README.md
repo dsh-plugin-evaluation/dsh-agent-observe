@@ -13,7 +13,7 @@ dsh plugin --profile web add github:dsh-plugin-evaluation/dsh-agent-observe
 安装后准备评测方案和安全测试数据：
 
 ```bash
-dsh-agent-observe-setup
+pnpm --dir "${DSH_HOME:-$HOME/.dsh}/profiles/web" exec dsh-agent-observe-setup
 ```
 
 数据会下载到：
