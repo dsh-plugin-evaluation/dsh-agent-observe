@@ -1,0 +1,7 @@
+# Agent Observability Plugin — bundle patch layer
+- insert:
+    - id: agent-observe
+      name: dsh-agent-observe
+      config:
+        retentionDays: 90
+        maxSessions: 10000
