@@ -55,13 +55,12 @@ RUN mkdir -p "$DSH_HOME/profiles/web/node_modules" \
   && printf '[]\n' > "$DSH_HOME/profiles/web/cordis.patch.yml" \
   && ln -sfn /opt/dsh-agent-observe "$DSH_HOME/profiles/web/node_modules/dsh-agent-observe"
 
-# 5. 把 DSH 安装内的 peer 包链接进插件，保证运行时解析
-RUN for pkg in @deepseek-ai/dsh-llm @deepseek-ai/dsh-tools @deepseek-ai/dsh-session @deepseek-ai/dsh-session-projection @deepseek-ai/dsh-storage-domain @deepseek-ai/cordis; do \
-      if [ -d "/opt/deepseek-harness/node_modules/$pkg" ]; then \
-        mkdir -p "/opt/dsh-agent-observe/node_modules/@deepseek-ai"; \
-        ln -sfn "/opt/deepseek-harness/node_modules/$pkg" "/opt/dsh-agent-observe/node_modules/$pkg"; \
-      fi; \
-    done
+# 5. 把 DSH 安装内的 peer 包链接进插件，保证隔离评测时运行时解析
+RUN mkdir -p /opt/dsh-agent-observe/node_modules/@deepseek-ai \
+  && ln -sfn /opt/deepseek-harness/packages/core/tools /opt/dsh-agent-observe/node_modules/@deepseek-ai/dsh-tools \
+  && ln -sfn /opt/deepseek-harness/packages/llm/llm /opt/dsh-agent-observe/node_modules/@deepseek-ai/dsh-llm \
+  && ln -sfn /opt/deepseek-harness/packages/storage/storage-domain /opt/dsh-agent-observe/node_modules/@deepseek-ai/dsh-storage-domain \
+  && ln -sfn /opt/deepseek-harness/vendor/cordis /opt/dsh-agent-observe/node_modules/@deepseek-ai/cordis
 
 WORKDIR /opt/deepseek-harness
 EXPOSE 3080

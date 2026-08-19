@@ -20,7 +20,7 @@ import { registerEvaluationProfilesRoute, registerGeneratedCaseValidationRoute, 
 
 export const name = 'agent-observe'
 
-export const inject = ['tools', 'sessionProjections', 'llm', 'agentDefaultModel', 'webServer']
+export const inject = ['tools', 'sessionProjections', 'llm', 'agentDefaultModel']
 
 /**
  * @typedef {Object} Config
@@ -102,14 +102,16 @@ export function apply(ctx, config) {
 
   registerTools(ctx, sessionMetrics, hourlyBuckets)
 
-  ctx.effect(() => registerInstalledPluginsRoute(ctx.webServer), 'agent-observe:installed-plugins-route')
-  ctx.effect(() => registerModelsRoute(ctx.webServer, () => listAvailableModels(ctx)), 'agent-observe:models-route')
-  ctx.effect(() => registerEvaluationProfilesRoute(ctx.webServer, listEvaluationProfiles, loadEvaluationProfiles), 'agent-observe:evaluation-profiles-route')
-  ctx.effect(() => registerGeneratedCaseValidationRoute(ctx.webServer, request => runPluginValidation({
-    ...request,
-    validate: item => judgePluginCase(ctx, { ...item, model: request.model }),
-  })), 'agent-observe:generated-case-validation-route')
-  ctx.effect(() => registerPluginValidationRoute(ctx.webServer), 'agent-observe:plugin-validation-route')
+  ctx.inject(['webServer'], (webCtx) => {
+    webCtx.effect(() => registerInstalledPluginsRoute(webCtx.webServer), 'agent-observe:installed-plugins-route')
+    webCtx.effect(() => registerModelsRoute(webCtx.webServer, () => listAvailableModels(ctx)), 'agent-observe:models-route')
+    webCtx.effect(() => registerEvaluationProfilesRoute(webCtx.webServer, listEvaluationProfiles, loadEvaluationProfiles), 'agent-observe:evaluation-profiles-route')
+    webCtx.effect(() => registerGeneratedCaseValidationRoute(webCtx.webServer, request => runPluginValidation({
+      ...request,
+      validate: item => judgePluginCase(ctx, { ...item, model: request.model }),
+    })), 'agent-observe:generated-case-validation-route')
+    webCtx.effect(() => registerPluginValidationRoute(webCtx.webServer), 'agent-observe:plugin-validation-route')
+  })
 
   // ── Log startup ───────────────────────────────────────────
 
