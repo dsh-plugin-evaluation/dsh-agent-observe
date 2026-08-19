@@ -3,6 +3,7 @@ import test from 'node:test'
 import { listAvailableModels } from '../src/model-catalog.js'
 import { EventEmitter } from 'node:events'
 import { demoKnowledgeCases, listInstalledPlugins, parseGeneratedCases, registerEvaluationProfilesRoute, registerPortableCasePlanRoute, registerPortableSecurityCaseRoute, resolveNodeExecutable, runDemoKnowledgeValidation, runPluginValidation } from '../src/plugin-validation-runner.js'
+import { getOpenApiDocument, registerApiDocsRoutes } from '../src/api-docs.js'
 
 test('prefers a valid current Node executable', async () => {
   const result = await resolveNodeExecutable({
@@ -165,7 +166,7 @@ test('records a model-judge failure as a failed case result', async () => {
   assert.match(result.cases[0].error, /模型判定失败：模型输出达到长度上限/)
 })
 
-async function invokeRoute(handler, method, body) {
+async function invokeRoute(handler, method, body, parse = true) {
   const req = new EventEmitter()
   req.method = method
   const response = { statusCode: 0, body: '', writeHead(statusCode) { this.statusCode = statusCode }, end(bodyText) { this.body = bodyText } }
@@ -175,7 +176,7 @@ async function invokeRoute(handler, method, body) {
     req.emit('end')
   }
   await pending
-  return { statusCode: response.statusCode, body: JSON.parse(response.body) }
+  return { statusCode: response.statusCode, body: parse ? JSON.parse(response.body) : response.body }
 }
 
 test('serves and loads evaluation profiles through the route', async () => {
@@ -187,6 +188,27 @@ test('serves and loads evaluation profiles through the route', async () => {
   assert.deepEqual(await invokeRoute(handler, 'GET'), { statusCode: 200, body: { profiles: [{ id: 'alpha-v1' }] } })
   assert.deepEqual(await invokeRoute(handler, 'POST', { profileIds: ['alpha-v1', 'beta-v1'] }), { statusCode: 200, body: { profiles: [{ id: 'alpha-v1', cases: [] }, { id: 'beta-v1', cases: [] }] } })
   assert.deepEqual(await invokeRoute(handler, 'DELETE'), { statusCode: 405, body: { error: 'method-not-allowed' } })
+})
+
+test('serves the OpenAPI document and browser-readable API docs', async () => {
+  const handlers = new Map()
+  registerApiDocsRoutes({ register(route) { handlers.set(route.path, route.handler); return () => {} } })
+
+  const json = await invokeRoute(handlers.get('/api-docs/openapi.json'), 'GET')
+  assert.equal(json.statusCode, 200)
+  assert.equal(json.body.openapi, '3.1.0')
+  assert.ok(json.body.paths['/api/agent-observe/plugin-validation/portable-plan'])
+  assert.deepEqual(getOpenApiDocument().info, json.body.info)
+
+  const html = await invokeRoute(handlers.get('/api-docs'), 'GET', undefined, false)
+  assert.equal(html.statusCode, 200)
+  assert.match(html.body, /DSH Agent Observe API/)
+})
+
+test('rejects non-GET requests on API docs routes', async () => {
+  const handlers = new Map()
+  registerApiDocsRoutes({ register(route) { handlers.set(route.path, route.handler); return () => {} } })
+  assert.deepEqual(await invokeRoute(handlers.get('/api-docs'), 'POST'), { statusCode: 405, body: { error: 'method-not-allowed' } })
 })
 
 test('runs a portable case plan through its dedicated route', async () => {

@@ -16,6 +16,7 @@ import { createAgentObserveProjection } from './projection.js'
 import { judgePluginCase } from './llm-case-generation.js'
 import { listAvailableModels } from './model-catalog.js'
 import { listEvaluationProfiles, loadEvaluationProfiles } from './evaluation-standards.js'
+import { registerApiDocsRoutes } from './api-docs.js'
 import { registerEvaluationProfilesRoute, registerGeneratedCaseValidationRoute, registerInstalledPluginsRoute, registerModelsRoute, registerPluginValidationRoute, registerPortableCasePlanRoute, registerPortableSecurityCaseRoute, runPluginValidation, runPortablePluginPlan, runPortablePluginSecurityCase } from './plugin-validation-runner.js'
 
 export const name = 'agent-observe'
@@ -103,6 +104,7 @@ export function apply(ctx, config) {
   registerTools(ctx, sessionMetrics, hourlyBuckets)
 
   ctx.inject(['webServer'], (webCtx) => {
+    webCtx.effect(() => registerApiDocsRoutes(webCtx.webServer), 'agent-observe:api-docs-route')
     webCtx.effect(() => registerInstalledPluginsRoute(webCtx.webServer), 'agent-observe:installed-plugins-route')
     webCtx.effect(() => registerModelsRoute(webCtx.webServer, () => listAvailableModels(ctx)), 'agent-observe:models-route')
     webCtx.effect(() => registerEvaluationProfilesRoute(webCtx.webServer, listEvaluationProfiles, loadEvaluationProfiles), 'agent-observe:evaluation-profiles-route')
