@@ -151,6 +151,22 @@ test('discovers the installed observe plugin through the real route', { skip }, 
   assert.ok(body.plugins.some(plugin => plugin.id === pluginId && plugin.available === true))
 })
 
+test('serves the OpenAPI document through the real DSH Web server', { skip }, async () => {
+  const response = await fetch(`${baseUrl}/api-docs/openapi.json`)
+  assert.equal(response.status, 200)
+  assert.match(response.headers.get('content-type') ?? '', /application\/json/)
+  const document = await response.json()
+  assert.equal(document.openapi, '3.1.0')
+  assert.ok(document.paths['/api/agent-observe/plugin-validation/portable-plan'])
+})
+
+test('serves browser-readable API documentation through the real DSH Web server', { skip }, async () => {
+  const response = await fetch(`${baseUrl}/api-docs`)
+  assert.equal(response.status, 200)
+  assert.match(response.headers.get('content-type') ?? '', /text\/html/)
+  assert.match(await response.text(), /DSH Agent Observe API/)
+})
+
 test('lists evaluation catalog metadata without loading cases', { skip }, async () => {
   const { response, body } = await jsonRequest('/api/agent-observe/evaluation-profiles', { method: 'GET' })
   assert.equal(response.status, 200)
