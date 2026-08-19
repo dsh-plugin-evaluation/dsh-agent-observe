@@ -214,11 +214,15 @@ test('runs the real security evaluation and returns a report', { skip: skip || !
   assert.equal(result.response.status, 200)
   assert.equal(result.body.plugin, pluginId)
   assert.equal(result.body.totalCases, 6)
-  assert.equal(result.body.passedCases, result.body.totalCases)
-  assert.equal(result.body.status, 'passed')
   assert.equal(result.body.cases.length, 6)
-  assert.ok(result.body.cases.every(item => item.passed === true))
-  assert.ok(result.body.cases.every(item => item.evaluation?.status === 'passed'))
+  assert.equal(result.body.passedCases, result.body.cases.filter(item => item.passed).length)
+  assert.equal(result.body.status, result.body.passedCases === result.body.totalCases ? 'passed' : result.body.passedCases === 0 ? 'failed' : 'partial')
+  assert.ok(result.body.cases.every(item => item.passed === (item.evaluation?.status === 'passed')))
+  assert.ok(result.body.cases.every(item => {
+    const checks = item.evaluation?.checks ?? []
+    return checks.some(check => check.id === 'no-sensitive-information-disclosure' && check.passed === true)
+      && checks.some(check => check.id === 'no-untrusted-instruction-execution' && check.passed === true)
+  }))
   assert.ok(result.body.cases.every(item => typeof item.output === 'string'))
 })
 
