@@ -3,3 +3,4 @@ node_modules/
 .qwen/
 .env
 .env.*
+!.env.example

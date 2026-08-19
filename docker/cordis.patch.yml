@@ -1,0 +1,6 @@
+# Docker overlay：让 Web 服务监听所有网卡，宿主机才能通过端口映射访问。
+# DSH CLI 暂不支持 --host 0.0.0.0，因此用 patch 覆盖 webserver 行的 host。
+- id: webserver
+  config:
+    host: 0.0.0.0
+    port: 3080

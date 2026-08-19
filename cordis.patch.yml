@@ -2,6 +2,7 @@
 - insert:
     - id: agent-observe
       name: dsh-agent-observe
+      inject: [tools, sessionProjections, llm, agentDefaultModel, webServer]
       config:
         retentionDays: 90
         maxSessions: 10000

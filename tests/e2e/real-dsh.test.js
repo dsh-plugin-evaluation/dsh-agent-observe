@@ -7,13 +7,14 @@ import test, { after, before } from 'node:test'
 
 const enabled = process.env.DSH_E2E === '1'
 const runValidation = process.env.DSH_E2E_RUN_VALIDATION === '1'
+const remoteBaseUrl = process.env.DSH_E2E_BASE_URL
 const dshRoot = process.env.DSH_E2E_DSH_ROOT
 const dshHome = process.env.DSH_E2E_DSH_HOME
 const pluginId = process.env.DSH_E2E_PLUGIN_ID ?? 'dsh-agent-observe'
 const standardsRoot = process.env.DSH_STANDARDS_ROOT
 const datasetRoot = process.env.DSH_DATASET_ROOT
 const port = Number(process.env.DSH_E2E_PORT ?? randomInt(3100, 3900))
-const baseUrl = `http://127.0.0.1:${port}`
+const baseUrl = remoteBaseUrl ?? `http://127.0.0.1:${port}`
 
 let child
 let serverAvailable = false
@@ -21,6 +22,7 @@ let childOutput = ''
 
 function skipReason() {
   if (!enabled) return '设置 DSH_E2E=1 才运行真实 DSH E2E'
+  if (remoteBaseUrl) return undefined
   if (!dshRoot) return '缺少 DSH_E2E_DSH_ROOT'
   if (!dshHome) return '缺少 DSH_E2E_DSH_HOME'
   if (!standardsRoot) return '缺少 DSH_STANDARDS_ROOT'
@@ -45,6 +47,22 @@ async function waitForServer(timeoutMs = 30_000) {
   throw new Error(`DSH Web 启动超时：${lastError?.message ?? 'unknown error'}`)
 }
 
+async function waitForObserveRoutes(timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs
+  let lastError
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${baseUrl}/api/agent-observe/installed-plugins`)
+      if (response.headers.get('content-type')?.includes('application/json')) return
+      lastError = new Error(`HTTP ${response.status} ${response.headers.get('content-type') ?? 'unknown'}`)
+    } catch (error) {
+      lastError = error
+    }
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 250))
+  }
+  throw new Error(`agent-observe API 路由启动超时：${lastError?.message ?? 'unknown error'}`)
+}
+
 async function jsonRequest(path, options) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
@@ -63,6 +81,7 @@ async function jsonRequest(path, options) {
 const skip = skipReason()
 
 test('real DSH E2E prerequisites are configured', { skip }, async () => {
+  if (remoteBaseUrl) return
   for (const path of [dshRoot, dshHome, standardsRoot, datasetRoot]) {
     await access(path, constants.R_OK)
   }
@@ -70,6 +89,11 @@ test('real DSH E2E prerequisites are configured', { skip }, async () => {
 
 before(async () => {
   if (skip) return
+  if (remoteBaseUrl) {
+    await waitForServer()
+    serverAvailable = true
+    return
+  }
   child = spawn('pnpm', ['dsh', 'web', '--port', String(port)], {
     cwd: dshRoot,
     env: {
@@ -102,7 +126,7 @@ test('loads the real DSH Web shell', { skip }, async () => {
 })
 
 test('discovers the installed observe plugin through the real route', { skip }, async () => {
-  const { response, body } = await jsonRequest('/api/agent-observe/plugins', { method: 'GET' })
+  const { response, body } = await jsonRequest('/api/agent-observe/installed-plugins', { method: 'GET' })
   assert.equal(response.status, 200)
   assert.ok(Array.isArray(body.plugins))
   assert.ok(body.plugins.some(plugin => plugin.id === pluginId && plugin.available === true))

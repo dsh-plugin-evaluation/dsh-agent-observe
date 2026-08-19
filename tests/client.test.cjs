@@ -121,7 +121,7 @@ function loadClient() {
   global.fetch = async (url, options) => {
     const request = { url, options }
     fetchRequests.push(request)
-    if (url === '/api/agent-observe/plugins') {
+    if (url === '/api/agent-observe/installed-plugins') {
       return { ok: true, status: 200, text: async () => JSON.stringify({ plugins: [{ id: 'demo-knowledge', name: 'demo-knowledge', description: '查询退款、配送和电子发票知识', available: true }] }) }
     }
     if (url === '/api/agent-observe/models') {
@@ -307,7 +307,7 @@ test('loads the profile service only after the user opens the scheme picker', as
   client.setProfilesServiceUnavailable()
   let node = openEvaluationCenter()
   await findAll(node, item => item.type === 'button' && textOf(item) === '创建实验')[0].props.onClick()
-  assert.deepEqual(client.fetchRequests.map(item => item.url).sort(), ['/api/agent-observe/models', '/api/agent-observe/plugins'])
+  assert.deepEqual(client.fetchRequests.map(item => item.url).sort(), ['/api/agent-observe/installed-plugins', '/api/agent-observe/models'])
   node = client.render('evaluation-center', { wide: true })
   assert.match(textOf(node), /创建实验/)
   assert.doesNotMatch(textOf(node), /评测方案服务尚未就绪/)
@@ -326,7 +326,7 @@ test('plugin experiment loads plugins, real models, and community evaluation pro
   assert.match(textOf(node), /创建实验/)
 
   await findAll(node, item => item.type === 'button' && textOf(item) === '创建实验')[0].props.onClick()
-  assert.deepEqual(client.fetchRequests.map(item => item.url).sort(), ['/api/agent-observe/models', '/api/agent-observe/plugins'])
+  assert.deepEqual(client.fetchRequests.map(item => item.url).sort(), ['/api/agent-observe/installed-plugins', '/api/agent-observe/models'])
   node = client.render('evaluation-center', { wide: true })
   await findAll(node, item => item.type === 'button' && textOf(item) === '选择评测方案')[0].props.onClick()
   node = client.render('evaluation-center', { wide: true })

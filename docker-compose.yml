@@ -1,0 +1,23 @@
+services:
+  dsh:
+    build:
+      context: .
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    image: dsh-agent-observe:latest
+    container_name: dsh-agent-observe
+    env_file:
+      - .env
+    environment:
+      DSH_HOME: /opt/dsh-home
+      DSH_STANDARDS_ROOT: /opt/evaluation/dsh-plugin-evaluation-standards
+      DSH_DATASET_ROOT: /opt/evaluation/dsh-security-evaluation-dataset
+    ports:
+      - "${DSH_WEB_PORT:-3080}:3080"
+    healthcheck:
+      test: ["CMD", "sh", "/opt/dsh-agent-observe/docker/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped

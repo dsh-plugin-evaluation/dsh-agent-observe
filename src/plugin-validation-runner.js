@@ -233,7 +233,7 @@ function writeJson(res, statusCode, body) {
 export function registerInstalledPluginsRoute(webServer) {
   return webServer.register({
     kind: 'exact',
-    path: '/api/agent-observe/plugins',
+    path: '/api/agent-observe/installed-plugins',
     async handler(req, res) {
       if (req.method !== 'GET') {
         writeJson(res, 405, { error: 'method-not-allowed' })

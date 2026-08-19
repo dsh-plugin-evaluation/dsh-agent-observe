@@ -791,7 +791,7 @@ window.__ModuleLoader__.load({
       const loadPlugins = async () => {
         setPluginsError('')
         try {
-          const response = await fetch('/api/agent-observe/plugins')
+          const response = await fetch('/api/agent-observe/installed-plugins')
           const body = await response.text()
           const result = JSON.parse(body)
           if (!response.ok) throw new Error(result.error ?? '无法读取已安装插件')

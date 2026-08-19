@@ -68,3 +68,37 @@ E2E 默认覆盖：
 ```bash
 DSH_E2E_RUN_VALIDATION=1
 ```
+
+## Docker 运行
+
+在 Docker 中运行 DSH + 评测插件：
+
+```bash
+# 1. 准备环境变量（真实 API Key 只写本地，不提交）
+cp .env.example .env
+# 编辑 .env，填入 DEEPSEEK_API_KEY
+
+# 2. 构建并启动
+docker compose up -d --build
+
+# 3. 打开
+open http://127.0.0.1:3080
+```
+
+`.env` 已被 `.gitignore` 忽略，不会提交到 Git。
+
+### Docker E2E
+
+```bash
+bash scripts/docker-e2e.sh
+```
+
+脚本会构建镜像、启动容器、等待评测接口就绪，然后对运行中的容器执行真实 E2E 测试。
+
+### 常用命令
+
+```bash
+docker compose logs -f        # 查看日志
+docker compose down           # 停止并删除容器
+docker compose restart        # 重启
+```
