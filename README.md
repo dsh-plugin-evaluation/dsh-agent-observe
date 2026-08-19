@@ -82,7 +82,7 @@ cp .env.example .env
 docker compose up -d --build
 
 # 3. 打开
-open http://127.0.0.1:3080
+open http://127.0.0.1:4380
 ```
 
 `.env` 已被 `.gitignore` 忽略，不会提交到 Git。

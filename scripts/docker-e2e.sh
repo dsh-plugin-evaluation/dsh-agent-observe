@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PORT="${DSH_WEB_PORT:-3080}"
+PORT="${DSH_WEB_PORT:-4380}"
 BASE_URL="http://127.0.0.1:${PORT}"
 
 echo "==> 构建并启动 DSH 容器"
