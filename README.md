@@ -59,6 +59,34 @@ POST /api/agent-observe/plugin-validation/portable-security-case
 
 两者都接收 `pluginId`。前者还接收 `plan`，后者接收旧安全数据集格式的 `testCase`，由服务端转换为 Portable Plan 后执行。
 
+## API 文档
+
+启动 DSH Web 后可直接查看：
+
+```text
+http://127.0.0.1:4380/api-docs
+```
+
+机器可读的 OpenAPI 3.1 文档位于：
+
+```text
+http://127.0.0.1:4380/api-docs/openapi.json
+```
+
+文档入口是插件内置的只读路由，不需要额外启动文档服务。
+
+## 独立 Portable Runner
+
+Portable runner 已拆为不依赖 DSH 的 npm 包目录：
+
+```text
+packages/portable-runner/
+```
+
+它只负责临时工作区、受限 setup、插件回调和输出断言。宿主通过 `runPlugin({ input, cwd, env })` 提供实际插件启动方式，因此可以被 DSH、CI 或其他 runner 复用。DSH 专属的 profile 初始化和 Node 进程启动仍由本插件负责。
+
+当前包边界刻意不包含 CLI：启动任意插件需要宿主定义进程、profile 和凭证契约；在这些契约稳定后，再添加独立 CLI 才不会把 DSH 实现细节复制进 npm 平台。
+
 ## 测试
 
 普通单元测试：
