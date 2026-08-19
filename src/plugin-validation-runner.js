@@ -3,6 +3,8 @@ import { access, readFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { delimiter, resolve } from 'node:path'
 import { evaluatePromptInjectionOutput } from './security-evaluator.js'
+import { runPortableCasePlan } from './portable-case-plan-runner.js'
+import { combinePromptInjectionEvaluation, promptInjectionCaseToPortablePlan } from './portable-case-adapter.js'
 
 const DSH_ROOT = process.env.DSH_ROOT ?? process.cwd()
 const DSH_HOME = process.env.DSH_HOME ?? resolve(DSH_ROOT, '.dsh')
@@ -191,6 +193,33 @@ export async function runPluginValidation({ pluginId, cases, validate, execute =
   }
   const passedCases = results.filter(item => item.passed).length
   return { plugin: pluginId, status: passedCases === results.length ? 'passed' : passedCases === 0 ? 'failed' : 'partial', totalCases: results.length, passedCases, durationMs: Date.now() - startedAt, cases: results, recordedAt: Date.now() }
+}
+
+export async function runPortablePluginPlan({ pluginId, plan, execute = run, resolveNode = resolveNodeExecutable, readPackage } = {}) {
+  if (typeof pluginId !== 'string' || pluginId.length === 0) throw new Error('请选择插件')
+  if (!plan || typeof plan !== 'object') throw new Error('portable case plan is required')
+  const profile = pluginProfileName(pluginId)
+  const pluginLink = await installedPluginLink(pluginId, readPackage)
+  const setup = await executeNode([CLI, 'plugin', '--profile', profile, 'add', pluginLink, `link:${HEADLESS_BUNDLE}`], { cwd: DSH_ROOT, env: validationEnv() }, execute, resolveNode)
+  if (setup.code !== 0) throw new Error(setup.stderr || '无法初始化隔离插件环境')
+
+  return runPortableCasePlan({
+    plan,
+    baseEnvironment: validationEnv(),
+    async runPlugin({ input, cwd, env }) {
+      const result = await executeNode([CLI, '--profile', profile, input], {
+        cwd,
+        env: { ...env, DSH_HOME },
+      }, execute, resolveNode)
+      return { output: result.stdout, exitCode: result.code }
+    },
+  })
+}
+
+export async function runPortablePluginSecurityCase({ pluginId, testCase, execute = run, resolveNode = resolveNodeExecutable, readPackage } = {}) {
+  const plan = promptInjectionCaseToPortablePlan(testCase)
+  const result = await runPortablePluginPlan({ pluginId, plan, execute, resolveNode, readPackage })
+  return combinePromptInjectionEvaluation({ portableResult: result, expectedOutput: testCase.expectedOutput })
 }
 
 export async function runDemoKnowledgeValidation({ execute = run, resolveNode = resolveNodeExecutable, caseIds = demoKnowledgeCases.map(item => item.id) } = {}) {
@@ -403,6 +432,79 @@ export function registerPluginValidationRoute(webServer) {
         }) } catch { throw new Error('请求体必须是 JSON') }
         const caseIds = Array.isArray(body.caseIds) ? body.caseIds.filter(item => typeof item === 'string') : undefined
         writeJson(res, 200, await runDemoKnowledgeValidation({ caseIds }))
+      } catch (error) {
+        writeJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+      } finally {
+        running = false
+      }
+    },
+  })
+}
+
+export function registerPortableCasePlanRoute(webServer, runPlan) {
+  let running = false
+  return webServer.register({
+    kind: 'exact',
+    path: '/api/agent-observe/plugin-validation/portable-plan',
+    async handler(req, res) {
+      if (req.method !== 'POST') {
+        writeJson(res, 405, { error: 'method-not-allowed' })
+        return
+      }
+      if (running) {
+        writeJson(res, 409, { error: 'validation-running' })
+        return
+      }
+      running = true
+      try {
+        let body = {}
+        try { body = await new Promise((resolve, reject) => {
+          let raw = ''
+          req.on('data', chunk => { raw += String(chunk) })
+          req.once('end', () => resolve(raw ? JSON.parse(raw) : {}))
+          req.once('error', reject)
+        }) } catch { throw new Error('请求体必须是 JSON') }
+        const pluginId = typeof body.pluginId === 'string' ? body.pluginId : ''
+        if (!pluginId) throw new Error('请选择插件')
+        writeJson(res, 200, await runPlan({ pluginId, plan: body.plan }))
+      } catch (error) {
+        writeJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+      } finally {
+        running = false
+      }
+    },
+  })
+}
+
+export function registerPortableSecurityCaseRoute(webServer, runCase) {
+  let running = false
+  return webServer.register({
+    kind: 'exact',
+    path: '/api/agent-observe/plugin-validation/portable-security-case',
+    async handler(req, res) {
+      if (req.method !== 'POST') {
+        writeJson(res, 405, { error: 'method-not-allowed' })
+        return
+      }
+      if (running) {
+        writeJson(res, 409, { error: 'validation-running' })
+        return
+      }
+      running = true
+      try {
+        let body = {}
+        try { body = await new Promise((resolve, reject) => {
+          let raw = ''
+          req.on('data', chunk => { raw += String(chunk) })
+          req.once('end', () => resolve(raw ? JSON.parse(raw) : {}))
+          req.once('error', reject)
+        }) } catch { throw new Error('请求体必须是 JSON') }
+        const pluginId = typeof body.pluginId === 'string' ? body.pluginId : ''
+        if (!pluginId) throw new Error('请选择插件')
+        if (!body.testCase || typeof body.testCase !== 'object' || Array.isArray(body.testCase)) {
+          throw new Error('prompt-injection case is required')
+        }
+        writeJson(res, 200, await runCase({ pluginId, testCase: body.testCase }))
       } catch (error) {
         writeJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
       } finally {

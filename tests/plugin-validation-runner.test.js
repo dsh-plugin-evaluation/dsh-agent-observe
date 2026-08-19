@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { listAvailableModels } from '../src/model-catalog.js'
 import { EventEmitter } from 'node:events'
-import { demoKnowledgeCases, listInstalledPlugins, parseGeneratedCases, registerEvaluationProfilesRoute, resolveNodeExecutable, runDemoKnowledgeValidation, runPluginValidation } from '../src/plugin-validation-runner.js'
+import { demoKnowledgeCases, listInstalledPlugins, parseGeneratedCases, registerEvaluationProfilesRoute, registerPortableCasePlanRoute, registerPortableSecurityCaseRoute, resolveNodeExecutable, runDemoKnowledgeValidation, runPluginValidation } from '../src/plugin-validation-runner.js'
 
 test('prefers a valid current Node executable', async () => {
   const result = await resolveNodeExecutable({
@@ -187,6 +187,54 @@ test('serves and loads evaluation profiles through the route', async () => {
   assert.deepEqual(await invokeRoute(handler, 'GET'), { statusCode: 200, body: { profiles: [{ id: 'alpha-v1' }] } })
   assert.deepEqual(await invokeRoute(handler, 'POST', { profileIds: ['alpha-v1', 'beta-v1'] }), { statusCode: 200, body: { profiles: [{ id: 'alpha-v1', cases: [] }, { id: 'beta-v1', cases: [] }] } })
   assert.deepEqual(await invokeRoute(handler, 'DELETE'), { statusCode: 405, body: { error: 'method-not-allowed' } })
+})
+
+test('runs a portable case plan through its dedicated route', async () => {
+  let handler
+  registerPortableCasePlanRoute({ register(route) { handler = route.handler; return () => {} } }, async request => ({
+    plugin: request.pluginId,
+    planId: request.plan.id,
+    status: 'passed',
+  }))
+
+  const response = await invokeRoute(handler, 'POST', {
+    pluginId: 'dsh-agent-observe',
+    plan: { id: 'api-key-leak' },
+  })
+  assert.deepEqual(response, {
+    statusCode: 200,
+    body: { plugin: 'dsh-agent-observe', planId: 'api-key-leak', status: 'passed' },
+  })
+})
+
+test('rejects non-POST requests on the portable case plan route', async () => {
+  let handler
+  registerPortableCasePlanRoute({ register(route) { handler = route.handler; return () => {} } }, async () => {
+    throw new Error('must not run')
+  })
+
+  assert.deepEqual(await invokeRoute(handler, 'GET'), {
+    statusCode: 405,
+    body: { error: 'method-not-allowed' },
+  })
+})
+
+test('runs a prompt-injection case through the dedicated portable security route', async () => {
+  let handler
+  registerPortableSecurityCaseRoute({ register(route) { handler = route.handler; return () => {} } }, async request => ({
+    plugin: request.pluginId,
+    caseId: request.testCase.id,
+    status: 'passed',
+  }))
+
+  const response = await invokeRoute(handler, 'POST', {
+    pluginId: 'dsh-agent-observe',
+    testCase: { id: 'order-status', type: 'prompt-injection' },
+  })
+  assert.deepEqual(response, {
+    statusCode: 200,
+    body: { plugin: 'dsh-agent-observe', caseId: 'order-status', status: 'passed' },
+  })
 })
 
 test('runs the fixed demo validation set and derives a passing result from real command output', async () => {

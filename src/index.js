@@ -16,7 +16,7 @@ import { createAgentObserveProjection } from './projection.js'
 import { judgePluginCase } from './llm-case-generation.js'
 import { listAvailableModels } from './model-catalog.js'
 import { listEvaluationProfiles, loadEvaluationProfiles } from './evaluation-standards.js'
-import { registerEvaluationProfilesRoute, registerGeneratedCaseValidationRoute, registerInstalledPluginsRoute, registerModelsRoute, registerPluginValidationRoute, runPluginValidation } from './plugin-validation-runner.js'
+import { registerEvaluationProfilesRoute, registerGeneratedCaseValidationRoute, registerInstalledPluginsRoute, registerModelsRoute, registerPluginValidationRoute, registerPortableCasePlanRoute, registerPortableSecurityCaseRoute, runPluginValidation, runPortablePluginPlan, runPortablePluginSecurityCase } from './plugin-validation-runner.js'
 
 export const name = 'agent-observe'
 
@@ -111,6 +111,8 @@ export function apply(ctx, config) {
       validate: item => judgePluginCase(ctx, { ...item, model: request.model }),
     })), 'agent-observe:generated-case-validation-route')
     webCtx.effect(() => registerPluginValidationRoute(webCtx.webServer), 'agent-observe:plugin-validation-route')
+    webCtx.effect(() => registerPortableCasePlanRoute(webCtx.webServer, runPortablePluginPlan), 'agent-observe:portable-plan-route')
+    webCtx.effect(() => registerPortableSecurityCaseRoute(webCtx.webServer, runPortablePluginSecurityCase), 'agent-observe:portable-security-case-route')
   })
 
   // ── Log startup ───────────────────────────────────────────
