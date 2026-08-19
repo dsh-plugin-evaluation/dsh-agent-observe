@@ -28,13 +28,36 @@ dsh plugin --profile web add github:dsh-plugin-evaluation/dsh-agent-observe
 - `dsh-plugin-evaluation-standards`：评测规则、指标和方案目录。
 - `dsh-security-evaluation-dataset`：实际安全测试用例。
 
-当前安全评测集固定使用 `v1.0.0`。可以通过环境变量覆盖目录：
+当前安全评测集固定使用 `v1.1.0`。可以通过环境变量覆盖目录：
 
 ```bash
 export DSH_EVALUATION_HOME="$HOME/.dsh/evaluation"
 export DSH_STANDARDS_ROOT="$DSH_EVALUATION_HOME/dsh-plugin-evaluation-standards"
 export DSH_DATASET_ROOT="$DSH_EVALUATION_HOME/dsh-security-evaluation-dataset"
 ```
+
+## Portable Case Plan
+
+评测 case 可以先转换为受限的 Portable Case Plan，再由 runner 执行。计划只支持标准操作：
+
+- `environment.set`
+- `workspace.write`
+- `workspace.read`
+- `plugin.prompt`
+- `output.equals`
+- `output.contains`
+- `output.notContains`
+
+runner 为每条 case 创建临时工作区，拒绝绝对路径和 `..` 路径穿越，并在插件执行后清理工作区。安全提示词注入 case 会在 Portable Plan 结果上继续执行秘密泄露、恶意指令执行和原始任务完成检查。
+
+已实现的 HTTP 入口：
+
+```text
+POST /api/agent-observe/plugin-validation/portable-plan
+POST /api/agent-observe/plugin-validation/portable-security-case
+```
+
+两者都接收 `pluginId`。前者还接收 `plan`，后者接收旧安全数据集格式的 `testCase`，由服务端转换为 Portable Plan 后执行。
 
 ## 测试
 

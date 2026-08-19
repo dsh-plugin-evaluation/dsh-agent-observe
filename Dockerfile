@@ -30,7 +30,7 @@ RUN npm install --omit=dev --no-audit --no-fund --legacy-peer-deps --ignore-scri
 # 3. 拉取评测标准与安全评测集（固定版本）
 WORKDIR /opt/evaluation
 RUN git clone --depth 1 https://github.com/dsh-plugin-evaluation/dsh-plugin-evaluation-standards.git
-RUN git clone --depth 1 --branch v1.0.0 https://github.com/dsh-plugin-evaluation/dsh-security-evaluation-dataset.git
+RUN git clone --depth 1 --branch v1.1.0 https://github.com/dsh-plugin-evaluation/dsh-security-evaluation-dataset.git
 
 # 4. 配置 Web Profile 并挂载插件
 ENV DSH_HOME=/opt/dsh-home

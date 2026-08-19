@@ -11,6 +11,7 @@ const remoteBaseUrl = process.env.DSH_E2E_BASE_URL
 const dshRoot = process.env.DSH_E2E_DSH_ROOT
 const dshHome = process.env.DSH_E2E_DSH_HOME
 const pluginId = process.env.DSH_E2E_PLUGIN_ID ?? 'dsh-agent-observe'
+const pluginRoot = process.env.DSH_E2E_PLUGIN_ROOT ?? resolve(import.meta.dirname, '../..')
 const standardsRoot = process.env.DSH_STANDARDS_ROOT
 const datasetRoot = process.env.DSH_DATASET_ROOT
 const port = Number(process.env.DSH_E2E_PORT ?? randomInt(3100, 3900))
@@ -63,6 +64,22 @@ async function waitForObserveRoutes(timeoutMs = 30_000) {
   throw new Error(`agent-observe API 路由启动超时：${lastError?.message ?? 'unknown error'}`)
 }
 
+async function installLocalPlugin() {
+  const install = spawn('pnpm', ['dsh', 'plugin', '--profile', 'web', 'add', `link:${pluginRoot}`], {
+    cwd: dshRoot,
+    env: { ...process.env, DSH_HOME: dshHome },
+    stdio: process.env.DSH_E2E_VERBOSE === '1' ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+  })
+  let output = ''
+  install.stdout?.on('data', chunk => { output += String(chunk) })
+  install.stderr?.on('data', chunk => { output += String(chunk) })
+  const exitCode = await new Promise((resolvePromise, reject) => {
+    install.once('error', reject)
+    install.once('exit', code => resolvePromise(code ?? 1))
+  })
+  if (exitCode !== 0) throw new Error(`安装本地评测插件失败（退出码 ${exitCode}）：${output}`)
+}
+
 async function jsonRequest(path, options) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
@@ -94,6 +111,7 @@ before(async () => {
     serverAvailable = true
     return
   }
+  await installLocalPlugin()
   child = spawn('pnpm', ['dsh', 'web', '--port', String(port)], {
     cwd: dshRoot,
     env: {
@@ -108,6 +126,7 @@ before(async () => {
   child.stderr?.on('data', chunk => { childOutput += String(chunk) })
   child.once('error', error => { child.spawnError = error })
   await waitForServer()
+  await waitForObserveRoutes()
   serverAvailable = true
 })
 
@@ -138,7 +157,8 @@ test('lists evaluation catalog metadata without loading cases', { skip }, async 
   assert.ok(Array.isArray(body.profiles))
   const profile = body.profiles.find(item => item.id === 'prompt-injection-basic-v1')
   assert.ok(profile)
-  assert.equal(profile.caseCount, 1)
+  assert.equal(profile.version, '1.1.0')
+  assert.equal(profile.caseCount, 6)
   assert.deepEqual(profile.metrics, ['prompt-injection-safety'])
 })
 
@@ -151,7 +171,7 @@ test('loads the selected external dataset on demand', { skip }, async () => {
   assert.equal(body.profiles.length, 1)
   const [profile] = body.profiles
   assert.equal(profile.id, 'prompt-injection-basic-v1')
-  assert.equal(profile.cases.length, 1)
+  assert.equal(profile.cases.length, 6)
   assert.equal(profile.cases[0].type, 'prompt-injection')
   assert.equal(profile.cases[0].expectedOutput, '运输中')
 })
@@ -177,9 +197,28 @@ test('runs the real security evaluation and returns a report', { skip: skip || !
   })
   assert.equal(result.response.status, 200)
   assert.equal(result.body.plugin, pluginId)
-  assert.equal(result.body.totalCases, 1)
-  assert.equal(result.body.cases.length, 1)
-  assert.ok(['passed', 'failed', 'partial'].includes(result.body.status))
-  assert.equal(typeof result.body.cases[0].evaluation?.status, 'string')
-  assert.equal(typeof result.body.cases[0].output, 'string')
+  assert.equal(result.body.totalCases, 6)
+  assert.equal(result.body.passedCases, result.body.totalCases)
+  assert.equal(result.body.status, 'passed')
+  assert.equal(result.body.cases.length, 6)
+  assert.ok(result.body.cases.every(item => item.passed === true))
+  assert.ok(result.body.cases.every(item => item.evaluation?.status === 'passed'))
+  assert.ok(result.body.cases.every(item => typeof item.output === 'string'))
+})
+
+test('runs one loaded security case through the Portable Security Case route', { skip: skip || !runValidation }, async () => {
+  const loaded = await jsonRequest('/api/agent-observe/evaluation-profiles', {
+    method: 'POST',
+    body: JSON.stringify({ profileIds: ['prompt-injection-basic-v1'] }),
+  })
+  assert.equal(loaded.response.status, 200)
+  const testCase = loaded.body.profiles[0].cases[0]
+  const result = await jsonRequest('/api/agent-observe/plugin-validation/portable-security-case', {
+    method: 'POST',
+    body: JSON.stringify({ pluginId, testCase }),
+  })
+  assert.equal(result.response.status, 200)
+  assert.equal(result.body.status, 'passed')
+  assert.equal(result.body.actualOutput.includes(testCase.expectedOutput), true)
+  assert.ok(result.body.checks.some(check => check.id === 'original-task-completed' && check.passed === true))
 })
