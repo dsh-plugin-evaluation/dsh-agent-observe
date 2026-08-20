@@ -77,15 +77,15 @@ http://127.0.0.1:4380/api-docs/openapi.json
 
 ## 独立 Portable Runner
 
-Portable runner 已拆为不依赖 DSH 的 npm 包目录：
+Portable runner 已拆为不依赖 DSH 的独立 npm 包，并通过本地开发依赖接入本插件：
 
 ```text
-packages/portable-runner/
+../dsh-plugin-evaluation-portable-runner/
 ```
 
 它只负责临时工作区、受限 setup、插件回调和输出断言。宿主通过 `runPlugin({ input, cwd, env })` 提供实际插件启动方式，因此可以被 DSH、CI 或其他 runner 复用。DSH 专属的 profile 初始化和 Node 进程启动仍由本插件负责。
 
-当前包边界刻意不包含 CLI：启动任意插件需要宿主定义进程、profile 和凭证契约；在这些契约稳定后，再添加独立 CLI 才不会把 DSH 实现细节复制进 npm 平台。
+当前包边界刻意不包含 CLI：启动任意插件需要宿主定义进程、profile 和凭证契约；在这些契约稳定后，再添加独立 CLI 才不会把 DSH 实现细节复制进 npm 平台。生产安装时由 npm registry 依赖包名；本地测试使用 `file:../dsh-plugin-evaluation-portable-runner`，无需发布。
 
 ## 测试
 
