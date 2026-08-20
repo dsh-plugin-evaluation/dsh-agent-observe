@@ -109,17 +109,20 @@ const openApiDocument = {
         type: 'object', required: ['id', 'passed'], properties: { id: { type: 'string' }, passed: { type: 'boolean' }, reason: { type: 'string' } },
       },
       PortableResult: {
-        type: 'object', required: ['status', 'reasons', 'checks', 'actualOutput', 'exitCode', 'durationMs'], properties: {
+        type: 'object', required: ['reportSchemaVersion', 'reportId', 'runId', 'status', 'reasons', 'checks', 'actualOutput', 'exitCode', 'durationMs', 'startedAt', 'finishedAt', 'summary', 'provenance'], properties: {
+          reportSchemaVersion: { const: 1 }, reportId: { type: 'string' }, runId: { type: 'string' },
           status: { type: 'string', enum: ['passed', 'failed'] }, reasons: { type: 'array', items: { type: 'string' } },
           checks: { type: 'array', items: { $ref: '#/components/schemas/Check' } }, actualOutput: { type: 'string' },
-          exitCode: { type: 'integer' }, durationMs: { type: 'integer' },
+          exitCode: { type: 'integer' }, durationMs: { type: 'integer' }, startedAt: { type: 'integer' }, finishedAt: { type: 'integer' },
+          summary: { type: 'object' }, provenance: { type: 'object' },
         },
       },
       ValidationResult: {
-        type: 'object', required: ['plugin', 'status', 'totalCases', 'passedCases', 'cases'], properties: {
+        type: 'object', required: ['reportSchemaVersion', 'reportId', 'runId', 'plugin', 'status', 'totalCases', 'passedCases', 'cases', 'startedAt', 'finishedAt', 'summary', 'provenance'], properties: {
+          reportSchemaVersion: { const: 1 }, reportId: { type: 'string' }, runId: { type: 'string' },
           plugin: { type: 'string' }, status: { type: 'string', enum: ['passed', 'failed', 'partial'] },
-          totalCases: { type: 'integer' }, passedCases: { type: 'integer' }, durationMs: { type: 'integer' },
-          cases: { type: 'array', items: { type: 'object' } }, recordedAt: { type: 'integer' },
+          totalCases: { type: 'integer' }, passedCases: { type: 'integer' }, durationMs: { type: 'integer' }, startedAt: { type: 'integer' }, finishedAt: { type: 'integer' },
+          cases: { type: 'array', items: { type: 'object' } }, recordedAt: { type: 'integer' }, summary: { type: 'object' }, provenance: { type: 'object' },
         },
       },
       GeneratedValidationRequest: {
