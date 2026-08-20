@@ -23,9 +23,10 @@ RUN pnpm config set registry "$NPM_REGISTRY" \
 RUN pnpm run build
 
 # 2. 安装 observe 插件（仅运行时依赖）
+COPY --from=portable_runner . /opt/dsh-plugin-evaluation-portable-runner
 COPY . /opt/dsh-agent-observe
 WORKDIR /opt/dsh-agent-observe
-RUN npm install --omit=dev --no-audit --no-fund --legacy-peer-deps --ignore-scripts --registry "$NPM_REGISTRY" || true
+RUN npm install --omit=dev --no-audit --no-fund --legacy-peer-deps --ignore-scripts --registry "$NPM_REGISTRY"
 
 # 3. 拉取评测标准与安全评测集（固定版本）
 WORKDIR /opt/evaluation
