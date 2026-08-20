@@ -1,1 +1,1 @@
-export { runPortableCasePlan } from '../packages/portable-runner/src/index.js'
+export { runPortableCasePlan } from '@dsh-plugin-evaluation/portable-runner'

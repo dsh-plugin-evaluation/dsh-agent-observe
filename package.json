@@ -13,7 +13,7 @@
     "./client": "./src/client.js",
     "./package.json": "./package.json"
   },
-  "files": ["src/", "packages/portable-runner/", "scripts/", "cordis.patch.yml", "README.md"],
+  "files": ["src/", "scripts/", "cordis.patch.yml", "README.md"],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -38,6 +38,7 @@
     "@deepseek-ai/dsh-session-projection": "*"
   },
   "dependencies": {
+    "@dsh-plugin-evaluation/portable-runner": "file:../dsh-plugin-evaluation-portable-runner",
     "zod": "^3.24.0"
   }
 }

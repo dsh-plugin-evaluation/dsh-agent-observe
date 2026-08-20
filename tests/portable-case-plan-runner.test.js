@@ -82,6 +82,16 @@ test('rejects unsupported operations and workspace traversal before plugin execu
   )
 })
 
+test('rejects malformed assertion contracts before plugin execution', async () => {
+  await assert.rejects(
+    runPortableCasePlan({
+      plan: { ...plan([{ op: 'output.contains' }]) },
+      async runPlugin() { throw new Error('must not run') },
+    }),
+    /assertion is invalid/,
+  )
+})
+
 test('adapts an isolated plugin CLI to a portable plan', async () => {
   const calls = []
   const result = await runPortablePluginPlan({
