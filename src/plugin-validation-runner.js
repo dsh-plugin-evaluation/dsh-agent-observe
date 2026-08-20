@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { access, readFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { delimiter, resolve } from 'node:path'
@@ -161,11 +162,15 @@ async function installedPluginLink(pluginId, readPackage = path => readFile(path
   return dependency
 }
 
-export async function runPluginValidation({ pluginId, cases, validate, execute = run, resolveNode = resolveNodeExecutable, readPackage } = {}) {
+export async function runPluginValidation({ pluginId, cases, validate, model = {}, execute = run, resolveNode = resolveNodeExecutable, readPackage } = {}) {
   if (typeof pluginId !== 'string' || pluginId.length === 0) throw new Error('请选择插件')
   if (!Array.isArray(cases) || cases.length === 0) throw new Error('至少选择一条测试用例')
   const profile = pluginProfileName(pluginId)
   const pluginLink = await installedPluginLink(pluginId, readPackage)
+  const pluginManifestText = readPackage === undefined
+    ? await readFile(resolve(pluginLink.slice('link:'.length), 'package.json'), 'utf8')
+    : await readPackage(resolve(pluginLink.slice('link:'.length), 'package.json'))
+  const pluginManifest = typeof pluginManifestText === 'string' ? JSON.parse(pluginManifestText) : {}
   const setup = await executeNode([CLI, 'plugin', '--profile', profile, 'add', pluginLink, `link:${HEADLESS_BUNDLE}`], { cwd: DSH_ROOT, env: validationEnv() }, execute, resolveNode)
   if (setup.code !== 0) throw new Error(setup.stderr || '无法初始化隔离插件环境')
   const startedAt = Date.now()
@@ -192,7 +197,30 @@ export async function runPluginValidation({ pluginId, cases, validate, execute =
     results.push({ id: item.id, title: item.title, expected: item.expected, profileId: item.profileId, profileName: item.profileName, profileVersion: item.profileVersion, output: text, durationMs: Date.now() - caseStartedAt, passed, error, evaluation })
   }
   const passedCases = results.filter(item => item.passed).length
-  return { plugin: pluginId, status: passedCases === results.length ? 'passed' : passedCases === 0 ? 'failed' : 'partial', totalCases: results.length, passedCases, durationMs: Date.now() - startedAt, cases: results, recordedAt: Date.now() }
+  const status = passedCases === results.length ? 'passed' : passedCases === 0 ? 'failed' : 'partial'
+  const finishedAt = Date.now()
+  const firstCase = cases[0]
+  const runId = randomUUID()
+  return {
+    reportSchemaVersion: 1,
+    reportId: runId,
+    runId,
+    plugin: pluginId,
+    status,
+    totalCases: results.length,
+    passedCases,
+    durationMs: finishedAt - startedAt,
+    startedAt,
+    finishedAt,
+    cases: results,
+    recordedAt: finishedAt,
+    summary: { status, totalCases: results.length, passedCases, failedCases: results.length - passedCases },
+    provenance: {
+      plugin: { name: pluginManifest.name ?? pluginId, ...(pluginManifest.version === undefined ? {} : { version: pluginManifest.version }) },
+      scheme: firstCase?.profileId === undefined ? {} : { id: firstCase.profileId, name: firstCase.profileName, version: firstCase.profileVersion },
+      model,
+    },
+  }
 }
 
 export async function runPortablePluginPlan({ pluginId, plan, execute = run, resolveNode = resolveNodeExecutable, readPackage } = {}) {

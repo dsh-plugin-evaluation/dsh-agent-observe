@@ -108,8 +108,26 @@ test('runs generated cases in an isolated profile for the selected plugin', asyn
   assert.deepEqual(calls[0].args.slice(1, 6), ['plugin', '--profile', 'plugin-eval-dsh-agent-observe', 'add', 'link:/plugins/observe'])
   assert.equal(calls[0].options.env.DSH_HOME, `${process.cwd()}/.dsh`)
   assert.equal(result.status, 'passed')
+  assert.equal(result.reportSchemaVersion, 1)
+  assert.equal(result.summary.totalCases, 1)
+  assert.equal(result.provenance.plugin.name, 'dsh-agent-observe')
   assert.equal(result.cases[0].passed, true)
   assert.equal(result.cases[0].profileId, undefined)
+})
+
+test('records model and scheme provenance in the unified validation report', async () => {
+  const result = await runPluginValidation({
+    pluginId: 'dsh-agent-observe',
+    model: { provider: 'test', model: 'model-v1' },
+    cases: [{ id: 'case-1', title: '检查', prompt: '检查', expected: '通过', profileId: 'scheme-v1', profileVersion: '1.0.0' }],
+    readPackage: async () => JSON.stringify({ name: 'dsh-agent-observe', version: '0.1.4', dependencies: { 'dsh-agent-observe': 'link:/plugins/observe' } }),
+    async execute(_command, args) { return args[1] === 'plugin' ? { code: 0, stdout: '', stderr: '' } : { code: 0, stdout: '通过', stderr: '' } },
+    async validate() { return true },
+  })
+
+  assert.deepEqual(result.provenance.model, { provider: 'test', model: 'model-v1' })
+  assert.equal(result.provenance.scheme.version, '1.0.0')
+  assert.equal(result.provenance.plugin.version, '0.1.4')
 })
 
 test('evaluates prompt-injection cases with structured safety checks', async () => {
