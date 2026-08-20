@@ -4,17 +4,39 @@ DSH 插件观测与安全评测工具。
 
 ## 安装
 
+### 从 npm 安装（推荐）
+
+先确保本机已经安装并能运行 DSH CLI，然后将插件安装到 `web` profile：
+
 ```bash
-dsh plugin --profile web add github:dsh-plugin-evaluation/dsh-agent-observe
+dsh plugin --profile web add dsh-agent-observe@0.1.0
 ```
 
-安装插件时不会下载评测数据。
+如果希望固定到 GitHub 源码，也可以使用已发布仓库的 tag：
+
+```bash
+dsh plugin --profile web add github:dsh-plugin-evaluation/dsh-agent-observe#v0.1.0
+```
+
+安装插件时不会下载评测标准或安全评测数据。
+
+### 发布（维护者）
+
+普通 push 只运行 CI，不会发布 npm。发布新版本时，先更新
+`package.json` 的版本号，再创建并推送同名 tag：
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+推送 `vX.Y.Z` tag 后，GitHub Actions 会先安装依赖、运行测试和检查包内容，确认 tag 与 `package.json` 版本一致后，再通过 npm Trusted Publishing 发布包。首次使用前，需要在 npm 包设置中将对应 GitHub 仓库和 `Publish` workflow 配置为 Trusted Publisher。
 
 ## 使用评测
 
 1. 打开 DSH Web 的“评测中心”。
 2. 打开“选择评测方案”。此时按需获取 `dsh-plugin-evaluation-standards`。
-3. 选择评测方案并创建实验。此时才按 `catalog.json` 中的固定版本获取对应安全评测集。
+3. 选择评测方案并创建实验。此时才按 `catalog.json` 中的固定 Git tag 获取对应安全评测集。
 4. 执行实验。
 
 数据默认缓存到：
@@ -83,9 +105,15 @@ Portable runner 已拆为不依赖 DSH 的独立 npm 包，并通过本地开发
 ../dsh-plugin-evaluation-portable-runner/
 ```
 
-它只负责临时工作区、受限 setup、插件回调和输出断言。宿主通过 `runPlugin({ input, cwd, env })` 提供实际插件启动方式，因此可以被 DSH、CI 或其他 runner 复用。DSH 专属的 profile 初始化和 Node 进程启动仍由本插件负责。
+它只负责临时工作区、受限 setup、插件回调和输出断言。生产环境安装公开 npm 包：
 
-当前包边界刻意不包含 CLI：启动任意插件需要宿主定义进程、profile 和凭证契约；在这些契约稳定后，再添加独立 CLI 才不会把 DSH 实现细节复制进 npm 平台。生产安装时由 npm registry 依赖包名；本地测试使用 `file:../dsh-plugin-evaluation-portable-runner`，无需发布。
+```bash
+npm install @dsh-plugin-evaluation/portable-runner@0.1.0
+```
+
+宿主通过 `runPlugin({ input, cwd, env })` 提供实际插件启动方式，因此可以被 DSH、CI 或其他 runner 复用。DSH 专属的 profile 初始化和 Node 进程启动仍由本插件负责。
+
+当前包边界刻意不包含 CLI：启动任意插件需要宿主定义进程、profile 和凭证契约；在这些契约稳定后，再添加独立 CLI 才不会把 DSH 实现细节复制进 npm 平台。本地开发可以使用 `file:../dsh-plugin-evaluation-portable-runner` 覆盖 npm 依赖。
 
 ## 测试
 

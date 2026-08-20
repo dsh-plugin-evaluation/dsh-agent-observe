@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-observe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agent observability plugin for DSH — behavior audit, cost tracking, anomaly detection",
   "type": "module",
   "main": "src/index.js",
@@ -13,7 +13,12 @@
     "./client": "./src/client.js",
     "./package.json": "./package.json"
   },
-  "files": ["src/", "scripts/", "cordis.patch.yml", "README.md"],
+  "files": [
+    "src/",
+    "scripts/",
+    "cordis.patch.yml",
+    "README.md"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
