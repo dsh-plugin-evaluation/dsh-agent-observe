@@ -24,6 +24,14 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      - name: Use npm 11 for trusted publishing
+        run: npm install --global npm@11.5.1
+
+      - name: Check publishing toolchain
+        run: |
+          node --version
+          npm --version
+
       - name: Verify tag matches package version
         shell: bash
         run: |
