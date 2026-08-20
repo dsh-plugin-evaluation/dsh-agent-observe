@@ -4,6 +4,7 @@ import { randomInt } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { resolve } from 'node:path'
 import test, { after, before } from 'node:test'
+import { reserveE2ePort, resolveStartupTimeout } from './support.js'
 
 const enabled = process.env.DSH_E2E === '1'
 const runValidation = process.env.DSH_E2E_RUN_VALIDATION === '1'
@@ -14,8 +15,10 @@ const pluginId = process.env.DSH_E2E_PLUGIN_ID ?? 'dsh-agent-observe'
 const pluginRoot = process.env.DSH_E2E_PLUGIN_ROOT ?? resolve(import.meta.dirname, '../..')
 const standardsRoot = process.env.DSH_STANDARDS_ROOT
 const datasetRoot = process.env.DSH_DATASET_ROOT
-const port = Number(process.env.DSH_E2E_PORT ?? randomInt(3100, 3900))
-const baseUrl = remoteBaseUrl ?? `http://127.0.0.1:${port}`
+const requestedPort = Number(process.env.DSH_E2E_PORT ?? randomInt(3100, 3900))
+const startupTimeoutMs = resolveStartupTimeout(process.env.DSH_E2E_STARTUP_TIMEOUT_MS)
+let port = requestedPort
+let baseUrl = remoteBaseUrl ?? `http://127.0.0.1:${port}`
 
 let child
 let serverAvailable = false
@@ -31,7 +34,7 @@ function skipReason() {
   return undefined
 }
 
-async function waitForServer(timeoutMs = 30_000) {
+async function waitForServer(timeoutMs = startupTimeoutMs) {
   const deadline = Date.now() + timeoutMs
   let lastError
   while (Date.now() < deadline) {
@@ -48,7 +51,7 @@ async function waitForServer(timeoutMs = 30_000) {
   throw new Error(`DSH Web 启动超时：${lastError?.message ?? 'unknown error'}`)
 }
 
-async function waitForObserveRoutes(timeoutMs = 30_000) {
+async function waitForObserveRoutes(timeoutMs = startupTimeoutMs) {
   const deadline = Date.now() + timeoutMs
   let lastError
   while (Date.now() < deadline) {
@@ -111,6 +114,8 @@ before(async () => {
     serverAvailable = true
     return
   }
+  port = await reserveE2ePort(requestedPort)
+  baseUrl = `http://127.0.0.1:${port}`
   await installLocalPlugin()
   child = spawn('pnpm', ['dsh', 'web', '--port', String(port)], {
     cwd: dshRoot,

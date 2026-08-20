@@ -105,6 +105,8 @@ DSH_DATASET_ROOT=/path/to/dsh-security-evaluation-dataset \
 npm run test:e2e
 ```
 
+E2E 默认等待 DSH Web 最多 60 秒，并在指定端口已被占用时自动选择空闲端口。慢速环境可设置 `DSH_E2E_STARTUP_TIMEOUT_MS`，需要固定端口时设置 `DSH_E2E_PORT`。
+
 E2E 默认覆盖：
 
 - DSH Web 是否能启动；
