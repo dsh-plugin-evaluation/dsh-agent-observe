@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-observe",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Agent observability plugin for DSH — behavior audit, cost tracking, anomaly detection",
   "repository": {
     "type": "git",
@@ -47,7 +47,7 @@
     "@deepseek-ai/dsh-session-projection": "*"
   },
   "dependencies": {
-    "@dsh-plugin-evaluation/portable-runner": "0.1.0",
+    "@dsh-plugin-evaluation/portable-runner": "0.1.5",
     "zod": "^3.24.0"
   }
 }
