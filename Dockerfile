@@ -26,12 +26,13 @@ RUN pnpm run build
 COPY --from=portable_runner . /opt/dsh-plugin-evaluation-portable-runner
 COPY . /opt/dsh-agent-observe
 WORKDIR /opt/dsh-agent-observe
-RUN npm install --omit=dev --no-audit --no-fund --legacy-peer-deps --ignore-scripts --registry "$NPM_REGISTRY"
+RUN npm install --omit=dev --package-lock=false --no-audit --no-fund --legacy-peer-deps --ignore-scripts --registry "$NPM_REGISTRY"
 
-# 3. 拉取评测标准与安全评测集（固定版本）
 WORKDIR /opt/evaluation
-RUN git clone --depth 1 https://github.com/dsh-plugin-evaluation/dsh-plugin-evaluation-standards.git
-RUN git clone --depth 1 --branch v1.1.0 https://github.com/dsh-plugin-evaluation/dsh-security-evaluation-dataset.git
+COPY --from=standards . /opt/evaluation/dsh-plugin-evaluation-standards
+RUN git clone --depth 1 https://github.com/dsh-plugin-evaluation/dsh-security-evaluation-dataset.git \
+  && cd dsh-security-evaluation-dataset \
+  && git checkout 6cfb4bf7bc2f7177f7c479d4108d91b8d6ea6f2e
 
 # 4. 配置 Web Profile 并挂载插件
 ENV DSH_HOME=/opt/dsh-home

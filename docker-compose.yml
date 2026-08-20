@@ -4,6 +4,7 @@ services:
       context: .
       additional_contexts:
         portable_runner: ../dsh-plugin-evaluation-portable-runner
+        standards: ../dsh-plugin-evaluation-standards
       args:
         NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     image: dsh-agent-observe:latest
